@@ -681,37 +681,668 @@ into:
 1000
 ```
 
+# React Learning Notes 09/21
+
+## 1. React Components
+
+A React component is a reusable piece of UI.
+
+Example:
+
+```tsx
+function Header() {
+  return (
+    <div>
+      <h1>Expense Tracker</h1>
+      <h2>Track your expenses easily.</h2>
+    </div>
+  )
+}
+```
+
+A component can be used inside another component:
+
+```tsx
+<Header />
+```
+
 ---
 
-# My Development Workflow
+## 2. `useState`
 
-When I start working:
+`useState` allows a component to store information that can change over time.
 
-```bash
-cd ~/projects/expense-tracker
-npm run dev
+```tsx
+const [amount, setAmount] = useState('')
 ```
 
-When I finish a session:
+`useState('')` returns two things:
 
-```bash
-git status
-git add .
-git commit -m "message"
+1. The current value → `amount`
+2. A function to update the value → `setAmount`
+
+This is array destructuring.
+
+Conceptually:
+
+```tsx
+const result = useState('')
+
+const amount = result[0]
+const setAmount = result[1]
 ```
 
-If the repository is connected to GitHub:
+When the setter is called:
 
-```bash
-git push
+```tsx
+setAmount('100')
 ```
 
-Before making a new change, I can check:
+React updates the state and re-renders the UI.
 
-```bash
-git status
-git log --oneline
+---
+
+## 3. State vs Variables
+
+Normal variables don't cause React to update the UI when their values change.
+
+React state does.
+
+```tsx
+const [amount, setAmount] = useState('')
 ```
+
+When `setAmount()` changes the state, React re-renders the component with the new value.
+
+---
+
+## 4. Event Handlers
+
+React event handlers are functions.
+
+```tsx
+<button onClick={addExpense}>
+  Add Expense
+</button>
+```
+
+This tells React:
+
+> When the button is clicked, call `addExpense`.
+
+Be careful with:
+
+```tsx
+onClick={addExpense()}
+```
+
+This calls the function immediately during rendering instead of waiting for the click.
+
+An inline function can also be used:
+
+```tsx
+onClick={() => setAmount('')}
+```
+
+---
+
+## 5. JSX Curly Braces `{ }`
+
+Curly braces mean:
+
+> I want to use JavaScript inside JSX.
+
+Examples:
+
+```tsx
+value={amount}
+```
+
+```tsx
+{description}
+```
+
+```tsx
+{expenses.length}
+```
+
+```tsx
+{expenses.map(...)}
+```
+
+A useful mental rule:
+
+**`{ }` → JavaScript inside JSX**
+
+---
+
+## 6. Parentheses `( )`
+
+Parentheses are commonly used for:
+
+### Function parameters
+
+```tsx
+function addExpense(amount: number) {
+}
+```
+
+### Calling functions
+
+```tsx
+setAmount('')
+```
+
+### Grouping returned JSX
+
+```tsx
+return (
+  <div>
+    <h1>Hello</h1>
+  </div>
+)
+```
+
+Mental rule:
+
+**`( )` → function parameters, function calls, or grouping**
+
+---
+
+## 7. Square Brackets `[ ]`
+
+Square brackets commonly represent arrays.
+
+```tsx
+const numbers = [10, 20, 30]
+```
+
+They are also used for array destructuring:
+
+```tsx
+const [amount, setAmount] = useState('')
+```
+
+Mental rule:
+
+**`[ ]` → arrays / array destructuring**
+
+---
+
+## 8. Controlled Inputs
+
+A controlled input is an input whose value is controlled by React state.
+
+```tsx
+const [description, setDescription] = useState('')
+```
+
+```tsx
+<input
+  value={description}
+  onChange={(e) => setDescription(e.target.value)}
+/>
+```
+
+The flow is:
+
+```text
+User types
+    ↓
+onChange runs
+    ↓
+setDescription(...)
+    ↓
+React state changes
+    ↓
+Component re-renders
+    ↓
+Input displays new state
+```
+
+Using `value={description}` means React is responsible for the input's displayed value.
+
+This also allows the input to be cleared by:
+
+```tsx
+setDescription('')
+```
+
+---
+
+## 9. Input Values Are Strings
+
+Even for:
+
+```tsx
+<input type="number" />
+```
+
+`e.target.value` is a string.
+
+For example:
+
+```tsx
+e.target.value
+```
+
+might be:
+
+```text
+"100"
+```
+
+If I need a number:
+
+```tsx
+Number(e.target.value)
+```
+
+In the Expense Tracker, I keep the input state as a string:
+
+```tsx
+const [amount, setAmount] = useState('')
+```
+
+and convert it to a number when creating an expense:
+
+```tsx
+Number(amount)
+```
+
+This also allows the input to be completely empty:
+
+```tsx
+setAmount('')
+```
+
+---
+
+## 10. Props
+
+Props allow a parent component to pass information to a child component.
+
+In our Expense Tracker:
+
+```text
+App
+ ↓
+ExpenseForm
+```
+
+`App` owns the state and passes it to `ExpenseForm`.
+
+Example:
+
+```tsx
+<ExpenseForm
+  description={description}
+  setDescription={setDescription}
+  amount={amount}
+  setAmount={setAmount}
+/>
+```
+
+The child receives those values through `props`:
+
+```tsx
+function ExpenseForm(props: ExpenseFormProps) {
+```
+
+and can use:
+
+```tsx
+props.description
+props.amount
+```
+
+---
+
+## 11. Passing Setter Functions as Props
+
+A parent can pass its state setter function to a child.
+
+Example:
+
+```tsx
+setDescription={setDescription}
+```
+
+The child can then update the parent's state:
+
+```tsx
+props.setDescription(e.target.value)
+```
+
+The flow is:
+
+```text
+App owns description state
+        ↓
+passes description to ExpenseForm
+        ↓
+passes setDescription to ExpenseForm
+        ↓
+user types in ExpenseForm
+        ↓
+ExpenseForm calls props.setDescription(...)
+        ↓
+App's state changes
+        ↓
+React re-renders
+```
+
+This is one way for a child component to communicate changes back to its parent.
+
+---
+
+## 12. Typing Props with TypeScript
+
+Define the expected props:
+
+```tsx
+type ExpenseFormProps = {
+  amount: string
+  setAmount: (value: string) => void
+  description: string
+  setDescription: (value: string) => void
+}
+```
+
+For values:
+
+```tsx
+amount: string
+description: string
+```
+
+For functions:
+
+```tsx
+setAmount: (value: string) => void
+```
+
+This means:
+
+> `setAmount` is a function that accepts a string and doesn't return a value.
+
+---
+
+## 13. Callback Props
+
+A parent can pass a function to a child.
+
+Example:
+
+```tsx
+function addExpense() {
+  console.log('Add expense clicked')
+}
+```
+
+Pass it:
+
+```tsx
+<ExpenseForm onAddExpense={addExpense} />
+```
+
+Define it in the child's props:
+
+```tsx
+type ExpenseFormProps = {
+  onAddExpense: () => void
+}
+```
+
+Then the child can call it:
+
+```tsx
+<button onClick={props.onAddExpense}>
+  Add Expense
+</button>
+```
+
+The flow is:
+
+```text
+App
+ │
+ │ passes function
+ ↓
+ExpenseForm
+ │
+ │ calls function when button is clicked
+ ↓
+App
+```
+
+This is called a **callback prop**.
+
+---
+
+## 14. Component Responsibility
+
+For the Expense Tracker, we are separating responsibilities.
+
+```text
+App
+ ├── owns application state
+ ├── owns expenses
+ ├── owns description
+ └── owns amount
+
+ExpenseForm
+ ├── displays description input
+ ├── displays amount input
+ └── tells App when Add Expense is clicked
+```
+
+The important idea:
+
+> `ExpenseForm` collects form information, while `App` owns the application's expense data.
+
+We don't want `ExpenseForm` to directly manage the entire `expenses` list.
+
+---
+
+## 15. Arrays in React State
+
+An array can be stored in state:
+
+```tsx
+const [expenses, setExpenses] = useState<Expense[]>([])
+```
+
+To add an item without modifying the existing array:
+
+```tsx
+setExpenses([...expenses, newExpense])
+```
+
+The spread operator:
+
+```tsx
+...expenses
+```
+
+takes all existing elements and puts them into a new array.
+
+Example:
+
+```tsx
+const expenses = [10, 20, 30]
+
+[...expenses, 40]
+```
+
+becomes:
+
+```tsx
+[10, 20, 30, 40]
+```
+
+Avoid directly mutating React state with methods such as:
+
+```tsx
+expenses.push(newExpense)
+```
+
+Instead, create a new array.
+
+---
+
+## 16. `.map()`
+
+`.map()` is commonly used to turn an array into rendered React elements.
+
+Example:
+
+```tsx
+expenses.map((expense) => (
+  <p key={expense.id}>
+    {expense.description} - ${expense.amount}
+  </p>
+))
+```
+
+Mental model:
+
+> Go through every item in the array and create something from it.
+
+---
+
+## 17. `key` in React Lists
+
+When rendering a list, React needs a `key` to identify each item.
+
+```tsx
+expenses.map((expense) => (
+  <p key={expense.id}>
+    {expense.description}
+  </p>
+))
+```
+
+The `key` is for React's internal tracking. It isn't displayed to the user.
+
+A stable unique ID is better than using the array index.
+
+---
+
+## 18. `crypto.randomUUID()`
+
+To create a unique ID in the browser:
+
+```tsx
+const id = crypto.randomUUID()
+```
+
+Example:
+
+```tsx
+{
+  id,
+  description,
+  amount
+}
+```
+
+`crypto.randomUUID()` is available through the browser's global `crypto` object.
+
+There is no need to import Node's `crypto` module for this browser code.
+
+---
+
+## 19. Derived State
+
+The total expense does not need its own state.
+
+Instead of maintaining:
+
+```tsx
+const [total, setTotal] = useState(0)
+```
+
+we can calculate it from `expenses`:
+
+```tsx
+expenses.reduce(
+  (sum, expense) => sum + expense.amount,
+  0
+)
+```
+
+The principle is:
+
+> Keep the minimum necessary state and derive values from that state.
+
+Here:
+
+```text
+expenses
+   ↓
+reduce()
+   ↓
+total
+```
+
+`expenses` is the source of truth.
+
+---
+
+# React Mental Model So Far
+
+The most important mental model I've learned:
+
+```text
+State
+  ↓
+UI displays state
+  ↓
+User interacts with UI
+  ↓
+Event handler runs
+  ↓
+State setter updates state
+  ↓
+React re-renders
+  ↓
+UI reflects new state
+```
+
+For parent/child components:
+
+```text
+Parent owns state
+      ↓
+Parent passes props
+      ↓
+Child displays/uses props
+      ↓
+Child calls callback/setter
+      ↓
+Parent state changes
+      ↓
+React re-renders
+```
+
+## Current Expense Tracker Architecture
+
+```text
+App
+│
+├── Header
+│
+└── ExpenseForm
+      ├── description input
+      ├── amount input
+      └── Add Expense button
+```
+
+Next step:
+
+**Make `addExpense()` actually create an expense and u**
+
 
 ---
 
